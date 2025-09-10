@@ -2,7 +2,7 @@
 let width = 150;
 let height = 150;
 
-const numBoids = 100;
+const numParticles = 100;
 const speedLimit = 8;
 let visualRange = 75;
 
@@ -32,7 +32,7 @@ buttons[0].addEventListener('click', () => { changeTheme('theme-default'); });
 buttons[1].addEventListener('click', () => { changeTheme('theme-birds'); });
 buttons[2].addEventListener('click', () => { changeTheme('theme-fishes'); });
 
-var boids = [];
+var particles = [];
 
 let mouseX = 0;
 let mouseY = 0;
@@ -42,9 +42,9 @@ document.addEventListener('mousemove', (event) => {
   mouseY = event.clientY;
 });
 
-function initBoids() {
-  for (var i = 0; i < numBoids; i += 1) {
-    boids[boids.length] = {
+function initParticles() {
+  for (var i = 0; i < numParticles; i += 1) {
+    particles[particles.length] = {
       x: Math.random() * width,
       y: Math.random() * height,
       dx: Math.random() * 10 - 5,
@@ -53,10 +53,10 @@ function initBoids() {
   }
 }
 
-function distance(boid1, boid2) {
+function distance(particle1, particle2) {
   return Math.sqrt(
-    (boid1.x - boid2.x) * (boid1.x - boid2.x) +
-      (boid1.y - boid2.y) * (boid1.y - boid2.y),
+    (particle1.x - particle2.x) * (particle1.x - particle2.x) +
+      (particle1.y - particle2.y) * (particle1.y - particle2.y),
   );
 }
 
@@ -64,7 +64,7 @@ function distance(boid1, boid2) {
 // Called initially and whenever the window resizes to update the canvas
 // size and width/height variables.
 function sizeCanvas() {
-  const canvas = document.getElementById("boids");
+  const canvas = document.getElementById("particles");
   width = window.innerWidth;
   height = window.innerHeight;
   canvas.width = width;
@@ -78,39 +78,39 @@ function sizeCanvas() {
   }
 }
 
-// Constrain a boid to within the window. If it gets too close to an edge,
+// Constrain a particle to within the window. If it gets too close to an edge,
 // nudge it back in and reverse its direction.
-function keepWithinBounds(boid) {
+function keepWithinBounds(particle) {
   const margin = 10;
   const turnFactor = 0.5;
 
-  if (boid.x < margin) {
-    boid.dx += turnFactor;
+  if (particle.x < margin) {
+    particle.dx += turnFactor;
   }
-  if (boid.x > width - margin) {
-    boid.dx -= turnFactor
+  if (particle.x > width - margin) {
+    particle.dx -= turnFactor
   }
-  if (boid.y < margin) {
-    boid.dy += turnFactor;
+  if (particle.y < margin) {
+    particle.dy += turnFactor;
   }
-  if (boid.y > height - margin) {
-    boid.dy -= turnFactor;
+  if (particle.y > height - margin) {
+    particle.dy -= turnFactor;
   }
 }
 
-// Find the center of mass of the other boids and adjust velocity slightly to
+// Find the center of mass of the other particles and adjust velocity slightly to
 // point towards the center of mass.
-function flyTowardsCenter(boid) {
+function flyTowardsCenter(particle) {
   const centeringFactor = 0.005; // adjust velocity by this %
 
   let centerX = 0;
   let centerY = 0;
   let numNeighbors = 0;
 
-  for (let otherBoid of boids) {
-    if (distance(boid, otherBoid) < visualRange) {
-      centerX += otherBoid.x;
-      centerY += otherBoid.y;
+  for (let otherParticle of particles) {
+    if (distance(particle, otherParticle) < visualRange) {
+      centerX += otherParticle.x;
+      centerY += otherParticle.y;
       numNeighbors += 1;
     }
   }
@@ -119,31 +119,31 @@ function flyTowardsCenter(boid) {
     centerX = centerX / numNeighbors;
     centerY = centerY / numNeighbors;
 
-    boid.dx += (centerX - boid.x) * centeringFactor;
-    boid.dy += (centerY - boid.y) * centeringFactor;
+    particle.dx += (centerX - particle.x) * centeringFactor;
+    particle.dy += (centerY - particle.y) * centeringFactor;
   }
 }
 
-// Move away from other boids that are too close to avoid colliding
-function avoidOthers(boid) {
-  const minDistance = 20; // The distance to stay away from other boids
+// Move away from other particles that are too close to avoid colliding
+function avoidOthers(particle) {
+  const minDistance = 20; // The distance to stay away from other particles
   const avoidFactor = 0.05; // Adjust velocity by this %
   let moveX = 0;
   let moveY = 0;
-  for (let otherBoid of boids) {
-    if (otherBoid !== boid) {
-      if (distance(boid, otherBoid) < minDistance) {
-        moveX += boid.x - otherBoid.x;
-        moveY += boid.y - otherBoid.y;
+  for (let otherParticle of particles) {
+    if (otherParticle !== particle) {
+      if (distance(particle, otherParticle) < minDistance) {
+        moveX += particle.x - otherParticle.x;
+        moveY += particle.y - otherParticle.y;
       }
     }
   }
 
-  boid.dx += moveX * avoidFactor;
-  boid.dy += moveY * avoidFactor;
+  particle.dx += moveX * avoidFactor;
+  particle.dy += moveY * avoidFactor;
 }
 
-function avoidCursor(boid) {
+function avoidCursor(particle) {
   const minDistance = 10;
   const maxDistance = 200;
   const avoidFactor = 0.01;
@@ -151,31 +151,31 @@ function avoidCursor(boid) {
   let moveY = 0;
 
   const cursor = { x: mouseX, y: mouseY };
-  const dist = distance(boid, cursor);
+  const dist = distance(particle, cursor);
 
   if (dist < maxDistance) {
     const strength = (maxDistance - dist) / (maxDistance - minDistance);
-    moveX += (boid.x - cursor.x) * strength;
-    moveY += (boid.y - cursor.y) * strength;
+    moveX += (particle.x - cursor.x) * strength;
+    moveY += (particle.y - cursor.y) * strength;
   }
 
-  boid.dx += moveX * avoidFactor;
-  boid.dy += moveY * avoidFactor;
+  particle.dx += moveX * avoidFactor;
+  particle.dy += moveY * avoidFactor;
 }
 
-// Find the average velocity (speed and direction) of the other boids and
+// Find the average velocity (speed and direction) of the other particles and
 // adjust velocity slightly to match.
-function matchVelocity(boid) {
+function matchVelocity(particle) {
   const matchingFactor = 0.05; // Adjust by this % of average velocity
 
   let avgDX = 0;
   let avgDY = 0;
   let numNeighbors = 0;
 
-  for (let otherBoid of boids) {
-    if (distance(boid, otherBoid) < visualRange) {
-      avgDX += otherBoid.dx;
-      avgDY += otherBoid.dy;
+  for (let otherParticle of particles) {
+    if (distance(particle, otherParticle) < visualRange) {
+      avgDX += otherParticle.dx;
+      avgDY += otherParticle.dy;
       numNeighbors += 1;
     }
   }
@@ -184,27 +184,27 @@ function matchVelocity(boid) {
     avgDX = avgDX / numNeighbors;
     avgDY = avgDY / numNeighbors;
 
-    boid.dx += (avgDX - boid.dx) * matchingFactor;
-    boid.dy += (avgDY - boid.dy) * matchingFactor;
+    particle.dx += (avgDX - particle.dx) * matchingFactor;
+    particle.dy += (avgDY - particle.dy) * matchingFactor;
   }
 }
 
 // Speed will naturally vary in flocking behavior, but real animals can't go
 // arbitrarily fast.
-function limitSpeed(boid) {
+function limitSpeed(particle) {
 
-  const speed = Math.sqrt(boid.dx * boid.dx + boid.dy * boid.dy);
+  const speed = Math.sqrt(particle.dx * particle.dx + particle.dy * particle.dy);
   if (speed > speedLimit) {
-    boid.dx = (boid.dx / speed) * speedLimit;
-    boid.dy = (boid.dy / speed) * speedLimit;
+    particle.dx = (particle.dx / speed) * speedLimit;
+    particle.dy = (particle.dy / speed) * speedLimit;
   }
 }
 
-function drawBoid(ctx, boid) {
-  const angle = Math.atan2(boid.dy, boid.dx);
-  ctx.translate(boid.x, boid.y);
+function drawParticle(ctx, particle) {
+  const angle = Math.atan2(particle.dy, particle.dx);
+  ctx.translate(particle.x, particle.y);
   ctx.rotate(angle);
-  ctx.translate(-boid.x, -boid.y);
+  ctx.translate(-particle.x, -particle.y);
   if (theme == 'theme-default') {
     ctx.fillStyle = "#efff78";
   } else if (theme == 'theme-birds') {
@@ -213,36 +213,36 @@ function drawBoid(ctx, boid) {
     ctx.fillStyle = "#da7";
   }
   ctx.beginPath();
-  ctx.moveTo(boid.x, boid.y);
-  ctx.lineTo(boid.x - 15, boid.y + 5);
-  ctx.lineTo(boid.x - 15, boid.y - 5);
-  ctx.lineTo(boid.x, boid.y);
+  ctx.moveTo(particle.x, particle.y);
+  ctx.lineTo(particle.x - 15, particle.y + 5);
+  ctx.lineTo(particle.x - 15, particle.y - 5);
+  ctx.lineTo(particle.x, particle.y);
   ctx.fill();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 // Main animation loop
 function animationLoop() {
-  // Update each boid
-  for (let boid of boids) {
+  // Update each particle
+  for (let particle of particles) {
     // Update the velocities according to each rule
-    flyTowardsCenter(boid);
-    avoidOthers(boid);
-    avoidCursor(boid);
-    matchVelocity(boid);
-    limitSpeed(boid);
-    keepWithinBounds(boid);
+    flyTowardsCenter(particle);
+    avoidOthers(particle);
+    avoidCursor(particle);
+    matchVelocity(particle);
+    limitSpeed(particle);
+    keepWithinBounds(particle);
 
     // Update the position based on the current velocity
-    boid.x += boid.dx;
-    boid.y += boid.dy;
+    particle.x += particle.dx;
+    particle.y += particle.dy;
   }
 
-  // Clear the canvas and redraw all the boids in their current positions
-  const ctx = document.getElementById("boids").getContext("2d");
+  // Clear the canvas and redraw all the particles in their current positions
+  const ctx = document.getElementById("particles").getContext("2d");
   ctx.clearRect(0, 0, width, height);
-  for (let boid of boids) {
-    drawBoid(ctx, boid);
+  for (let particle of particles) {
+    drawParticle(ctx, particle);
   }
 
   // Schedule the next frame
@@ -254,8 +254,8 @@ window.onload = () => {
   window.addEventListener("resize", sizeCanvas, false);
   sizeCanvas();
 
-  // Randomly distribute the boids to start
-  initBoids();
+  // Randomly distribute the particles to start
+  initParticles();
 
   // Schedule the main animation loop
   window.requestAnimationFrame(animationLoop);
