@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Boids</title>
+        <link rel="stylesheet" href="./styles.css" />
+    </head>
+    <body class="theme-birds">
+        <canvas id="boids" width="150" height="150"></canvas>
+        <div id="menu">
+            <button class="theme-btn" id="theme-default-btn">🌱</button>
+            <button class="theme-btn" id="theme-birds-btn">🪶</button>
+            <button class="theme-btn" id="theme-fishes-btn">🐠</button>
+        </div>
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const script = document.createElement("script");
+                script.src = "./boids.js";
+                document.body.appendChild(script);
+            });
+        </script>
+    </body>
+</html>
