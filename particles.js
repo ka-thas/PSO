@@ -33,14 +33,8 @@ buttons[1].addEventListener('click', () => { changeTheme('theme-birds'); });
 buttons[2].addEventListener('click', () => { changeTheme('theme-fishes'); });
 
 var particles = [];
-
-let mouseX = 0;
-let mouseY = 0;
-
-document.addEventListener('mousemove', (event) => {
-  mouseX = event.clientX;
-  mouseY = event.clientY;
-});
+let gBest = 0;
+let gBestValue = 0;
 
 function initParticles() {
   for (var i = 0; i < numParticles; i += 1) {
@@ -49,6 +43,9 @@ function initParticles() {
       y: Math.random() * height,
       dx: Math.random() * 10 - 5,
       dy: Math.random() * 10 - 5,
+      pBest: null,
+      pBestValue: null,
+      fitness: 0
     };
   }
 }
@@ -98,99 +95,34 @@ function keepWithinBounds(particle) {
   }
 }
 
-// Find the center of mass of the other particles and adjust velocity slightly to
-// point towards the center of mass.
-function flyTowardsCenter(particle) {
-  const centeringFactor = 0.005; // adjust velocity by this %
+// fitnessFunction(particle)
 
-  let centerX = 0;
-  let centerY = 0;
-  let numNeighbors = 0;
+// Evaluates the quality of the particle’s current position.
 
-  for (let otherParticle of particles) {
-    if (distance(particle, otherParticle) < visualRange) {
-      centerX += otherParticle.x;
-      centerY += otherParticle.y;
-      numNeighbors += 1;
-    }
-  }
+// This depends on what problem you’re optimizing.
 
-  if (numNeighbors) {
-    centerX = centerX / numNeighbors;
-    centerY = centerY / numNeighbors;
+// updatePersonalBest(particle)
 
-    particle.dx += (centerX - particle.x) * centeringFactor;
-    particle.dy += (centerY - particle.y) * centeringFactor;
-  }
-}
+// If current fitness is better than pBestValue, update pBest and pBestValue.
 
-// Move away from other particles that are too close to avoid colliding
-function avoidOthers(particle) {
-  const minDistance = 20; // The distance to stay away from other particles
-  const avoidFactor = 0.05; // Adjust velocity by this %
-  let moveX = 0;
-  let moveY = 0;
-  for (let otherParticle of particles) {
-    if (otherParticle !== particle) {
-      if (distance(particle, otherParticle) < minDistance) {
-        moveX += particle.x - otherParticle.x;
-        moveY += particle.y - otherParticle.y;
-      }
-    }
-  }
+// updateGlobalBest()
 
-  particle.dx += moveX * avoidFactor;
-  particle.dy += moveY * avoidFactor;
-}
+// After all particles are checked, update the global best position and value.
 
-function avoidCursor(particle) {
-  const minDistance = 10;
-  const maxDistance = 200;
-  const avoidFactor = 0.01;
-  let moveX = 0;
-  let moveY = 0;
+// updateVelocity(particle)
 
-  const cursor = { x: mouseX, y: mouseY };
-  const dist = distance(particle, cursor);
+// Velocity update rule using inertia, cognitive, and social components:
 
-  if (dist < maxDistance) {
-    const strength = (maxDistance - dist) / (maxDistance - minDistance);
-    moveX += (particle.x - cursor.x) * strength;
-    moveY += (particle.y - cursor.y) * strength;
-  }
+// inertia → keeps momentum
 
-  particle.dx += moveX * avoidFactor;
-  particle.dy += moveY * avoidFactor;
-}
+// cognitive → pull toward pBest
 
-// Find the average velocity (speed and direction) of the other particles and
-// adjust velocity slightly to match.
-function matchVelocity(particle) {
-  const matchingFactor = 0.05; // Adjust by this % of average velocity
+// social → pull toward gBest
 
-  let avgDX = 0;
-  let avgDY = 0;
-  let numNeighbors = 0;
+// updatePosition(particle)
 
-  for (let otherParticle of particles) {
-    if (distance(particle, otherParticle) < visualRange) {
-      avgDX += otherParticle.dx;
-      avgDY += otherParticle.dy;
-      numNeighbors += 1;
-    }
-  }
+// Move based on velocity, then clamp inside bounds if needed.
 
-  if (numNeighbors) {
-    avgDX = avgDX / numNeighbors;
-    avgDY = avgDY / numNeighbors;
-
-    particle.dx += (avgDX - particle.dx) * matchingFactor;
-    particle.dy += (avgDY - particle.dy) * matchingFactor;
-  }
-}
-
-// Speed will naturally vary in flocking behavior, but real animals can't go
-// arbitrarily fast.
 function limitSpeed(particle) {
 
   const speed = Math.sqrt(particle.dx * particle.dx + particle.dy * particle.dy);
@@ -225,13 +157,14 @@ function drawParticle(ctx, particle) {
 function animationLoop() {
   // Update each particle
   for (let particle of particles) {
-    // Update the velocities according to each rule
-    flyTowardsCenter(particle);
-    avoidOthers(particle);
-    avoidCursor(particle);
-    matchVelocity(particle);
-    limitSpeed(particle);
-    keepWithinBounds(particle);
+    
+    // TODO:
+    // Evaluate fitness of each particle
+    // Update personal bests
+    // Update global best
+    // Update velocities
+    // Update positions
+    // Draw particles (optional, for visualization)
 
     // Update the position based on the current velocity
     particle.x += particle.dx;
