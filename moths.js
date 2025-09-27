@@ -2,8 +2,8 @@
 let width = 150;
 let height = 150;
 
-let numParticles = 5;
-const speedLimit = 2;
+const numParticles = 10;
+const speedLimit = 5;
 let visualRange = 75;
 
 let isVisitedOnPhone = false;
@@ -15,30 +15,6 @@ if (/Mobi|Android/i.test(navigator.userAgent)) {
     localStorage.setItem('visitedOnPhone', 'true');
   }
 }
-
-// Add event listener for buttons
-let inputEl = document.getElementById('numParticles');
-inputEl.addEventListener('change', (event) => {
-  let value = parseInt(event.target.value);
-  if (!isNaN(value) && value > 0 && value <= 100) {
-    numParticles = value;
-    particles = [];
-    initParticles();
-    globalBest = { x: 0, y: 0 };
-    globalBestValue = -Infinity;
-    gBestEl.textContent = `N/A`;
-  }
-});
-let buttonEl = document.getElementById('reset');
-buttonEl.addEventListener('click', (event) => {
-  particles = [];
-  initParticles();
-  globalBest = { x: 0, y: 0 };
-  globalBestValue = -Infinity;
-  gBestEl.textContent = `N/A`;
-});
-
-let gBestEl = document.getElementById("global-best");
 
 const canvas = document.getElementById("particles");
 const ctx = canvas.getContext("2d");
@@ -52,10 +28,18 @@ let globalBestValue = -Infinity;
 let peaks = [];
 let maxPossibleValue = 0;
 
-// PSO parameters
-const inertiaWeight = 0.95;
-const cognitiveWeight = 1.7;
-const socialWeight = 1.7;
+// PSO parameters - tuned for moth-like behavior
+const inertiaWeight = 0.7;  // High inertia for momentum/overshoot
+const cognitiveWeight = 0.003;  // Lower cognitive to reduce direct attraction
+const socialWeight = 0.001;    // Higher social for strong attraction to peaks
+
+let mouseX = 0;
+let mouseY = 0;
+
+document.addEventListener('mousemove', (event) => {
+  mouseX = event.clientX;
+  mouseY = event.clientY;
+});
 
 function initParticles() {
   for (var i = 0; i < numParticles; i += 1) {
@@ -152,9 +136,9 @@ function fitnessFunctionMulti(x, y) {
 
 function colormap(t) {
   // blue → green → red
-  const r = Math.floor(300 * t);
-  const g = Math.floor(300 * (1 - Math.abs(t - 0.5) * 2));
-  const b = Math.floor(200 * (1 - t));
+  const g = Math.floor(455 * t);
+  const r = Math.floor(255 * (1 - Math.abs(t - 0.5) * 2));
+  const b = Math.floor(55 * (1 - t));
   return [r, g, b];
 }
 
@@ -197,8 +181,7 @@ function keepWithinBounds(particle) {
 }
 
 function updatePersonalBest(particle) {
-  const currentFitness = normalize(fitnessFunctionMulti(particle.x, particle.y));
-  
+  const currentFitness = fitnessFunctionMulti(particle.x, particle.y);
   particle.fitness = currentFitness;
   if (particle.pBestValue === null || currentFitness > particle.pBestValue) {
     particle.pBest = { x: particle.x, y: particle.y };
@@ -212,34 +195,62 @@ function updateGlobalBest() {
     if (particle.fitness > globalBestValue) {
       globalBestValue = particle.fitness;
       globalBest = { x: particle.x, y: particle.y };
-      gBestEl.textContent = `(${globalBest.x.toFixed(1)}, ${globalBest.y.toFixed(1)}) Val: ${globalBestValue.toFixed(3)}`;
     }
   }
 }
 
 function updateVelocity(particle) {
   // PSO velocity update rule: v = w*v + c1*r1*(pBest - x) + c2*r2*(gBest - x)
-  // where w = inertia weight, c1 = cognitive weight, c2 = social weight
-  // r1, r2 = random numbers [0,1]
+  // Modified for moth-like behavior with spiral momentum
   
   const r1 = Math.random();
   const r2 = Math.random();
   
-  // Inertia component: keeps momentum
+  // Inertia component: keeps momentum for overshooting
   const inertiaX = inertiaWeight * particle.dx;
   const inertiaY = inertiaWeight * particle.dy;
   
-  // Cognitive component: pull toward personal best
-  const cognitiveX = cognitiveWeight * r1 * (particle.pBest.x - particle.x);
-  const cognitiveY = cognitiveWeight * r1 * (particle.pBest.y - particle.y);
+  // Cognitive component: pull toward personal best (reduced)
+  let cognitiveX = 0;
+  let cognitiveY = 0;
+  if (particle.pBest) {
+    cognitiveX = cognitiveWeight * r1 * (particle.pBest.x - particle.x);
+    cognitiveY = cognitiveWeight * r1 * (particle.pBest.y - particle.y);
+  }
   
-  // Social component: pull toward global best
+  // Social component: strong pull toward global best
   const socialX = socialWeight * r2 * (globalBest.x - particle.x);
   const socialY = socialWeight * r2 * (globalBest.y - particle.y);
   
-  // Update velocity
-  particle.dx = inertiaX + cognitiveX + socialX;
-  particle.dy = inertiaY + cognitiveY + socialY;
+  // Add perpendicular component for spiraling (moth-like behavior)
+  const distToGlobal = Math.sqrt((globalBest.x - particle.x) ** 2 + (globalBest.y - particle.y) ** 2);
+  const spiralStrength = 0.05; // Adjust for more/less spiraling
+  const spiralX = -spiralStrength * (globalBest.y - particle.y) / (distToGlobal + 1);
+  const spiralY = spiralStrength * (globalBest.x - particle.x) / (distToGlobal + 1);
+  
+  // Update velocity with all components
+  particle.dx += inertiaX + cognitiveX + socialX + spiralX;
+  particle.dy += inertiaY + cognitiveY + socialY + spiralY;
+}
+
+function avoidCursor(boid) {
+  const minDistance = 10;
+  const maxDistance = 200;
+  const avoidFactor = 0.01;
+  let moveX = 0;
+  let moveY = 0;
+
+  const cursor = { x: mouseX, y: mouseY };
+  const dist = distance(boid, cursor);
+
+  if (dist < maxDistance) {
+    const strength = (maxDistance - dist) / (maxDistance - minDistance);
+    moveX += (boid.x - cursor.x) * strength;
+    moveY += (boid.y - cursor.y) * strength;
+  }
+
+  boid.dx += moveX * avoidFactor;
+  boid.dy += moveY * avoidFactor;
 }
 
 function updatePosition(particle) {
@@ -263,7 +274,12 @@ function drawParticle(ctx, particle) {
   ctx.translate(particle.x, particle.y);
   ctx.rotate(angle);
   ctx.translate(-particle.x, -particle.y);
-  ctx.fillStyle = "#fff";
+
+  // Make opacity depend on fitness (0.3 to 1.0 opacity range)
+  const opacity = Math.max(0.2, Math.min(1.0, particle.fitness * 5)); // Scale fitness for visibility
+  const alpha = Math.round(opacity * 255).toString(16).padStart(2, '0');
+  ctx.fillStyle = `#ffffaa${alpha}`;
+  
   ctx.beginPath();
   ctx.moveTo(particle.x, particle.y);
   ctx.lineTo(particle.x - 15, particle.y + 5);

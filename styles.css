@@ -2,38 +2,40 @@ body {
     margin: 0;
     background-color: #222;
     overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+    color: white;
 }
 .theme-default {
     background-color: #222;
 }
-.theme-fishes {
-    background: linear-gradient(
-        to bottom,
-        rgb(20, 94, 114) 0%,
-        rgb(30, 58, 120) 100%
-    );
-    background-color: #222;
-}
-.theme-birds {
-    background: linear-gradient(
-        to bottom,
-        rgb(168, 216, 255) 30%,
-        rgb(251, 255, 204) 100%
-    );
-    background-color: #222;
-}
 
 #menu {
+    display: flex;
+    flex-direction: column;
     position: absolute;
     top: 0;
-    right: 0;
+    left: 0;
     padding: 10px;
 }
+#numParticles {
+    width: fit-content;
+    background-color: #228;
+    border: 1px solid white;
+    border-radius: 4px;
+    color: white;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+}
 button {
-    font-size: 20px;
-    padding: 5px;
-    border-radius: 10px;
-    border: none;
+    border-radius: 4px;
+    border: 1px solid white;
     cursor: pointer;
-    background-color: #333;
+    background-color: #228;
+    width: fit-content;
+    color: white;
+}
+
+a {
+    color: white;
+    text-decoration: none;
 }
