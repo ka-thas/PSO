@@ -4,11 +4,6 @@ body {
     overflow: hidden;
 }
 .theme-default {
-    background: linear-gradient(
-        to right,
-        rgb(46, 71, 63) 0%,
-        rgb(47, 77, 53) 100%
-    );
     background-color: #222;
 }
 .theme-fishes {
@@ -40,5 +35,5 @@ button {
     border-radius: 10px;
     border: none;
     cursor: pointer;
-    background-color: #222;
+    background-color: #333;
 }
