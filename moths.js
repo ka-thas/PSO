@@ -29,9 +29,9 @@ let peaks = [];
 let maxPossibleValue = 0;
 
 // PSO parameters - tuned for moth-like behavior
-const inertiaWeight = 0.7;  // High inertia for momentum/overshoot
+const inertiaWeight = 0.05;  // High inertia for momentum/overshoot
 const cognitiveWeight = 0.003;  // Lower cognitive to reduce direct attraction
-const socialWeight = 0.001;    // Higher social for strong attraction to peaks
+const socialWeight = 0.0003;    // Higher social for strong attraction to peaks
 
 let mouseX = 0;
 let mouseY = 0;
@@ -65,8 +65,9 @@ function distance(particle1, particle2) {
 // Generate random peaks for the fitness landscape
 function generateRandomPeaks(numPeaks = 3) {
   peaks = [];
-  maxPossibleValue = 0;
+  let totalAmplitude = 0;
   
+  // First pass: generate random amplitudes
   for (let i = 0; i < numPeaks; i++) {
     const amplitude = Math.random() * 0.6 + 0.4; // Random amplitude: 0.4-1.0
     peaks.push({
@@ -75,8 +76,17 @@ function generateRandomPeaks(numPeaks = 3) {
       sigma: Math.random() * 80 + 40,                   // Random spread: 40-120
       amplitude: amplitude
     });
-    maxPossibleValue += amplitude; // Calculate theoretical maximum
+    totalAmplitude += amplitude;
   }
+  
+  // Second pass: normalize amplitudes so they sum to 1
+  tallestPeakValue = 0;
+  for (let peak of peaks) {
+    peak.amplitude /= totalAmplitude;
+    tallestPeakValue = Math.max(tallestPeakValue, peak.amplitude);
+  }
+  
+  maxPossibleValue = 1.0; // Now always 1 since amplitudes sum to 1
 }
 
 // Called initially and whenever the window resizes to update the canvas

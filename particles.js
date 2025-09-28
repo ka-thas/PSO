@@ -1,8 +1,11 @@
 // Size of canvas. These get updated to fill the whole browser.
 let width = 150;
-let height = 150;
+let height = 150
+
+
 
 let numParticles = 5;
+let numPeaks = 3;
 const speedLimit = 2;
 let visualRange = 75;
 
@@ -17,8 +20,8 @@ if (/Mobi|Android/i.test(navigator.userAgent)) {
 }
 
 // Add event listener for buttons
-let inputEl = document.getElementById('numParticles');
-inputEl.addEventListener('change', (event) => {
+let numParticlesEl = document.getElementById('numParticles');
+numParticlesEl.addEventListener('change', (event) => {
   let value = parseInt(event.target.value);
   if (!isNaN(value) && value > 0 && value <= 100) {
     numParticles = value;
@@ -29,6 +32,22 @@ inputEl.addEventListener('change', (event) => {
     gBestEl.textContent = `N/A`;
   }
 });
+
+let numPeaksEl = document.getElementById('numPeaks');
+numPeaksEl.addEventListener('change', (event) => {
+  let value = parseInt(event.target.value);
+  if (!isNaN(value) && value > 0 && value <= 100) {
+    numPeaks = value;
+    particles = [];
+    initParticles();
+    globalBest = { x: 0, y: 0 };
+    globalBestValue = -Infinity;
+    gBestEl.textContent = `N/A`;
+    generateRandomPeaks()
+    drawLandscape()
+  }
+});
+
 let buttonEl = document.getElementById('reset');
 buttonEl.addEventListener('click', (event) => {
   particles = [];
@@ -51,6 +70,7 @@ let globalBestValue = -Infinity;
 // Global peaks array - will be populated with random peaks
 let peaks = [];
 let maxPossibleValue = 0;
+let tallestPeakValue = 0; // Track the actual tallest peak for color mapping
 
 // PSO parameters
 const inertiaWeight = 0.95;
@@ -81,8 +101,9 @@ function distance(particle1, particle2) {
 // Generate random peaks for the fitness landscape
 function generateRandomPeaks(numPeaks = 3) {
   peaks = [];
-  maxPossibleValue = 0;
+  let totalAmplitude = 0;
   
+  // First pass: generate random amplitudes
   for (let i = 0; i < numPeaks; i++) {
     const amplitude = Math.random() * 0.6 + 0.4; // Random amplitude: 0.4-1.0
     peaks.push({
@@ -91,8 +112,17 @@ function generateRandomPeaks(numPeaks = 3) {
       sigma: Math.random() * 80 + 40,                   // Random spread: 40-120
       amplitude: amplitude
     });
-    maxPossibleValue += amplitude; // Calculate theoretical maximum
+    totalAmplitude += amplitude;
   }
+  
+  // Second pass: normalize amplitudes so they sum to 1
+  tallestPeakValue = 0;
+  for (let peak of peaks) {
+    peak.amplitude /= totalAmplitude;
+    tallestPeakValue = Math.max(tallestPeakValue, peak.amplitude);
+  }
+  
+  maxPossibleValue = 1.0; // Now always 1 since amplitudes sum to 1
 }
 
 // Called initially and whenever the window resizes to update the canvas
@@ -136,7 +166,7 @@ function fitnessFunctionMulti(x, y) {
 
   let value = 0;
 
-  // Sum contributions from each peak
+  // Sum contributions from each peak (amplitudes already sum to 1)
   for (let peak of peaks) {
     const dx = x - peak.cx;
     const dy = y - peak.cy;
@@ -144,27 +174,29 @@ function fitnessFunctionMulti(x, y) {
     value += peak.amplitude * Math.exp(-dist2 / (2 * peak.sigma * peak.sigma));
   }
 
-  // Normalize so maximum possible value is 1
-  return value / maxPossibleValue;
+  // Value is already properly normalized since peak amplitudes sum to 1
+  return value;
 }
 
 
 
 function colormap(t) {
   // blue → green → red
-  const r = Math.floor(300 * t);
-  const g = Math.floor(300 * (1 - Math.abs(t - 0.5) * 2));
-  const b = Math.floor(200 * (1 - t));
+  const r = Math.floor(255 * t);
+  const g = Math.floor(255 * (1 - Math.abs(t - 0.5) * 2));
+  const b = Math.floor(255 * (1 - t));
   return [r, g, b];
 }
 
 // Draw the landscape on the canvas using the fitness function
 function drawLandscape() {
   imgData = ctx.createImageData(width, height);
+  
+  // using the tallest peak for normalization
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
       const value = fitnessFunctionMulti(x, y);
-      const normValue = normalize(value);
+      const normValue = value / tallestPeakValue; // Normalize by actual tallest peak
       const [r, g, b] = colormap(normValue);
       const index = (x + y * width) * 4;
       imgData.data[index] = r;
@@ -238,8 +270,8 @@ function updateVelocity(particle) {
   const socialY = socialWeight * r2 * (globalBest.y - particle.y);
   
   // Update velocity
-  particle.dx = inertiaX + cognitiveX + socialX;
-  particle.dy = inertiaY + cognitiveY + socialY;
+  particle.dx += inertiaX + cognitiveX + socialX;
+  particle.dy += inertiaY + cognitiveY + socialY;
 }
 
 function updatePosition(particle) {
