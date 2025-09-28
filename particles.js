@@ -3,6 +3,10 @@ let width = 150;
 let height = 150
 
 
+// PSO parameters
+const inertiaWeight = 0.95;
+const cognitiveWeight = 1.2;
+const socialWeight = 1.7;
 
 let numParticles = 5;
 let numPeaks = 3;
@@ -17,6 +21,14 @@ if (/Mobi|Android/i.test(navigator.userAgent)) {
   } else {
     localStorage.setItem('visitedOnPhone', 'true');
   }
+  
+  // Hide the menu on mobile devices
+  document.addEventListener("DOMContentLoaded", function () {
+    const menu = document.getElementById('menu');
+    if (menu) {
+      menu.style.display = 'none';
+    }
+  });
 }
 
 // Add event listener for buttons
@@ -72,11 +84,6 @@ let peaks = [];
 let maxPossibleValue = 0;
 let tallestPeakValue = 0; // Track the actual tallest peak for color mapping
 
-// PSO parameters
-const inertiaWeight = 0.95;
-const cognitiveWeight = 1.7;
-const socialWeight = 1.7;
-
 function initParticles() {
   for (var i = 0; i < numParticles; i += 1) {
     particles[particles.length] = {
@@ -99,7 +106,7 @@ function distance(particle1, particle2) {
 }
 
 // Generate random peaks for the fitness landscape
-function generateRandomPeaks(numPeaks = 3) {
+function generateRandomPeaks() {
   peaks = [];
   let totalAmplitude = 0;
   
